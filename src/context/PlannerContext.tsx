@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { DailyRecord, SkaterProfile } from '../types';
+import { 
+    DailyRecord, SkaterProfile, DailyTemplate, 
+    RoutineSnippet, MealPlanSnippet, DrillSetSnippet 
+} from '../types';
 import { StorageService } from '../services/StorageService';
 import { DEFAULT_TASKS, DEFAULT_NUTRITION } from '../constants';
 
@@ -25,6 +28,15 @@ interface PlannerContextType {
   addProfile: (name: string) => void;
   switchProfile: (id: string) => void;
   deleteProfile: (id: string) => void;
+  
+  // Custom Planning
+  saveTemplate: (template: DailyTemplate) => void;
+  deleteTemplate: (id: string) => void;
+  assignTemplateToDates: (templateId: string, dates: string[]) => void;
+
+  // Snippet Library
+  saveToLibrary: (type: 'routines' | 'mealPlans' | 'drillSets', snippet: any) => void;
+  deleteFromLibrary: (type: 'routines' | 'mealPlans' | 'drillSets', id: string) => void;
 }
 
 const PlannerContext = createContext<PlannerContextType | undefined>(undefined);
@@ -36,13 +48,21 @@ export const PlannerProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [loading, setLoading] = useState(true);
 
   const calculateRecordCompletion = useCallback((record: DailyRecord) => {
+    // Sick and Rest days are always 100% complete for streak purposes
+    if (record.type === 'sick' || record.type === 'rest') return 100;
+    
     const tasks = record.tasks || [];
     const nutrition = record.nutrition || [];
+    
+    // Rest days might have fewer tasks, we still calculate based on what's there
+    // If a day has NO tasks/nutrition (unlikely with templates), it's 100%
     const totalItems = tasks.length + nutrition.length;
+    if (totalItems === 0) return 100;
+
     const completedItems = 
       tasks.filter(t => t.completed).length + 
       nutrition.filter(n => n.completed).length;
-    return totalItems > 0 ? (completedItems / totalItems) * 100 : 0;
+    return (completedItems / totalItems) * 100;
   }, []);
 
   const loadData = useCallback(async (profileId: string) => {
@@ -58,18 +78,45 @@ export const PlannerProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return d.toISOString().split('T')[0];
   }, []);
 
-  const createDefaultRecord = useCallback((date: string): DailyRecord => ({
-    date,
-    tasks: DEFAULT_TASKS.map((t, i) => ({ ...t, id: `task-${i}`, completed: false })),
-    nutrition: DEFAULT_NUTRITION.map((n, i) => ({ ...n, id: `nut-${i}`, completed: false })),
-    hydration: { glasses: 0 },
-    sleep: { bedTime: '', wakeTime: '', hours: 0, score: 'needs-improvement' },
-  }), []);
+  const createDefaultRecord = useCallback((date: string): DailyRecord => {
+    // Check if there is a template assigned to this date
+    const templateId = activeProfile?.schedule?.[date];
+    const template = activeProfile?.templates?.find(t => t.id === templateId);
+
+    if (template) {
+        return {
+            date,
+            type: template.type,
+            templateId: template.id,
+            tasks: (template.tasks || []).map((t, i) => ({ ...t, id: `task-${i}`, completed: false })),
+            nutrition: (template.nutrition || []).map((n, i) => ({ ...n, id: `nut-${i}`, completed: false })),
+            drills: template.drills || [],
+            hydration: { glasses: 0 },
+            sleep: { bedTime: '', wakeTime: '', hours: 0, score: 'needs-improvement' },
+        };
+    }
+
+    // Default Fallback
+    return {
+        date,
+        type: 'training',
+        tasks: DEFAULT_TASKS.map((t, i) => ({ ...t, id: `task-${i}`, completed: false })),
+        nutrition: DEFAULT_NUTRITION.map((n, i) => ({ ...n, id: `nut-${i}`, completed: false })),
+        drills: [],
+        hydration: { glasses: 0 },
+        sleep: { bedTime: '', wakeTime: '', hours: 0, score: 'needs-improvement' },
+    };
+
+  }, [activeProfile]);
 
   // Initial Load
   useEffect(() => {
     const init = async () => {
-        const storedProfiles = StorageService.getProfiles();
+        const storedProfiles = StorageService.getProfiles().map(p => ({
+            ...p,
+            templates: p.templates || [],
+            schedule: p.schedule || {}
+        }));
         setProfiles(storedProfiles);
         
         const activeId = StorageService.getActiveProfileId();
@@ -90,10 +137,12 @@ export const PlannerProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const newProfile: SkaterProfile = {
         id: Math.random().toString(36).substr(2, 9),
         name,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        templates: [],
+        schedule: {}
     };
     setProfiles(prev => {
-        const updated = [...prev, newProfile];
+        const updated = [...(prev || []), newProfile];
         StorageService.saveProfiles(updated);
         return updated;
     });
@@ -106,7 +155,12 @@ export const PlannerProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const profile = profiles.find(p => p.id === id);
     if (profile) {
         setRecords({});
-        setActiveProfile(profile);
+        const safeProfile = {
+            ...profile,
+            templates: profile.templates || [],
+            schedule: profile.schedule || {}
+        };
+        setActiveProfile(safeProfile);
         StorageService.setActiveProfileId(id);
         await loadData(id);
     }
@@ -114,13 +168,119 @@ export const PlannerProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const deleteProfile = useCallback((id: string) => {
       setProfiles(prev => {
-          const updated = prev.filter(p => p.id !== id);
+          const updated = (prev || []).filter(p => p.id !== id);
           StorageService.saveProfiles(updated);
           return updated;
       });
       localStorage.removeItem(`skate-data-${id}`);
       setActiveProfile(current => (current?.id === id ? null : current));
   }, []);
+
+  const saveTemplate = useCallback((template: DailyTemplate) => {
+    if (!activeProfile) return;
+    
+    const updatedProfile: SkaterProfile = {
+        ...activeProfile,
+        templates: (activeProfile.templates || []).some(t => t.id === template.id)
+            ? activeProfile.templates.map(t => t.id === template.id ? template : t)
+            : [...(activeProfile.templates || []), template]
+    };
+
+    setProfiles(prev => {
+        const updated = (prev || []).map(p => p.id === activeProfile.id ? updatedProfile : p);
+        StorageService.saveProfiles(updated);
+        return updated;
+    });
+    setActiveProfile(updatedProfile);
+  }, [activeProfile]);
+
+  const deleteTemplate = useCallback((id: string) => {
+    if (!activeProfile) return;
+
+    const updatedTemplates = (activeProfile.templates || []).filter(t => t.id !== id);
+    const updatedSchedule = { ...(activeProfile.schedule || {}) };
+    Object.keys(updatedSchedule).forEach(date => {
+        if (updatedSchedule[date] === id) delete updatedSchedule[date];
+    });
+
+    const updatedProfile: SkaterProfile = { 
+        ...activeProfile, 
+        templates: updatedTemplates, 
+        schedule: updatedSchedule 
+    };
+
+    setProfiles(prev => {
+        const updated = (prev || []).map(p => p.id === activeProfile.id ? updatedProfile : p);
+        StorageService.saveProfiles(updated);
+        return updated;
+    });
+    setActiveProfile(updatedProfile);
+  }, [activeProfile]);
+
+  const assignTemplateToDates = useCallback((templateId: string, dates: string[]) => {
+    if (!activeProfile) return;
+
+    const updatedSchedule = { ...(activeProfile.schedule || {}) };
+    dates.forEach(date => {
+        if (!date) return;
+        if (templateId === '') {
+            delete updatedSchedule[date];
+        } else {
+            updatedSchedule[date] = templateId;
+        }
+    });
+
+    const updatedProfile: SkaterProfile = { 
+        ...activeProfile, 
+        schedule: updatedSchedule 
+    };
+
+    setProfiles(prev => {
+        const updated = (prev || []).map(p => p.id === activeProfile.id ? updatedProfile : p);
+        StorageService.saveProfiles(updated);
+        return updated;
+    });
+    setActiveProfile(updatedProfile);
+  }, [activeProfile]);
+
+  const saveToLibrary = useCallback((type: 'routines' | 'mealPlans' | 'drillSets', snippet: any) => {
+    if (!activeProfile) return;
+
+    const currentLibrary = activeProfile.library || { routines: [], mealPlans: [], drillSets: [] };
+    const list = currentLibrary[type] || [];
+    const isExisting = list.some((s: any) => s.id === snippet.id);
+    
+    const updatedList = isExisting
+        ? list.map((s: any) => s.id === snippet.id ? snippet : s)
+        : [...list, snippet];
+    
+    const updatedLibrary = { ...currentLibrary, [type]: updatedList };
+    const updatedProfile: SkaterProfile = { ...activeProfile, library: updatedLibrary };
+
+    setProfiles(prev => {
+        const updated = (prev || []).map(p => p.id === activeProfile.id ? updatedProfile : p);
+        StorageService.saveProfiles(updated);
+        return updated;
+    });
+    setActiveProfile(updatedProfile);
+  }, [activeProfile]);
+
+  const deleteFromLibrary = useCallback((type: 'routines' | 'mealPlans' | 'drillSets', id: string) => {
+    if (!activeProfile) return;
+
+    const currentLibrary = activeProfile.library || { routines: [], mealPlans: [], drillSets: [] };
+    const updatedList = (currentLibrary[type] || []).filter((s: any) => s.id !== id);
+    
+    const updatedLibrary = { ...currentLibrary, [type]: updatedList };
+    const updatedProfile: SkaterProfile = { ...activeProfile, library: updatedLibrary };
+
+    setProfiles(prev => {
+        const updated = (prev || []).map(p => p.id === activeProfile.id ? updatedProfile : p);
+        StorageService.saveProfiles(updated);
+        return updated;
+    });
+    setActiveProfile(updatedProfile);
+  }, [activeProfile]);
 
   const getRecord = useCallback((date: string): DailyRecord => {
     return records[date] || createDefaultRecord(date);
@@ -236,12 +396,16 @@ export const PlannerProvider: React.FC<{ children: React.ReactNode }> = ({ child
     records, profiles, activeProfile, loading, 
     getRecord, updateRecord, toggleItem, updateHydration, updateSleep,
     calculateRecordCompletion, getStats, exportData, importData,
-    addProfile, switchProfile, deleteProfile 
+    addProfile, switchProfile, deleteProfile,
+    saveTemplate, deleteTemplate, assignTemplateToDates,
+    saveToLibrary, deleteFromLibrary
   }), [
     records, profiles, activeProfile, loading, 
     getRecord, updateRecord, toggleItem, updateHydration, updateSleep,
     calculateRecordCompletion, getStats, exportData, importData, 
-    addProfile, switchProfile, deleteProfile
+    addProfile, switchProfile, deleteProfile,
+    saveTemplate, deleteTemplate, assignTemplateToDates,
+    saveToLibrary, deleteFromLibrary
   ]);
 
   return <PlannerContext.Provider value={value}>{children}</PlannerContext.Provider>;

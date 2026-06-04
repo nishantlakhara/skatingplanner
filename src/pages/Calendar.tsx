@@ -4,11 +4,12 @@ import { usePlanner } from '../context/PlannerContext';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, subDays } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Info, Target, Zap } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Info, Target, Zap, Coffee, Stethoscope, Plane, Dumbbell } from 'lucide-react';
 import { motion } from 'framer-motion';
 import WeeklyFocusCard from '../components/WeeklyFocusCard';
 import { WEEKLY_FOCUS } from '../constants';
 import { getWeekNumber } from '../utils/dateUtils';
+import { DayType } from '../types';
 
 const CalendarPage: React.FC = () => {
   const navigate = useNavigate();
@@ -45,13 +46,22 @@ const CalendarPage: React.FC = () => {
     const dateStr = format(date, 'yyyy-MM-dd');
     const record = records[dateStr];
     
+    // Check for assigned template/schedule even if no record exists yet
+    const templateId = activeProfile?.schedule?.[dateStr];
+    const template = activeProfile?.templates?.find(t => t.id === templateId);
+    const effectiveType: DayType = record?.type || template?.type || 'training';
+
+    if (effectiveType === 'sick') return { color: 'bg-red-50 text-red-600 border-2 border-red-100', label: 'Sick', icon: Stethoscope };
+    if (effectiveType === 'rest') return { color: 'bg-green-50 text-green-600 border-2 border-green-100', label: 'Rest', icon: Coffee };
+    if (effectiveType === 'travel') return { color: 'bg-orange-50 text-orange-600 border-2 border-orange-100', label: 'Travel', icon: Plane };
+
     if (!record) return { color: 'bg-slate-50 text-slate-300', label: 'Empty' };
     
     const completion = calculateRecordCompletion(record);
     if (completion >= 90) return { color: 'bg-green-500 text-white shadow-[0_4px_12px_rgba(34,197,94,0.4)]', label: 'Elite' };
     if (completion >= 60) return { color: 'bg-amber-500 text-white shadow-[0_4px_12px_rgba(245,158,11,0.4)]', label: 'Good' };
     return { color: 'bg-red-500 text-white shadow-[0_4px_12px_rgba(239,68,68,0.4)]', label: 'Average' };
-  }, [records, calculateRecordCompletion]);
+  }, [records, calculateRecordCompletion, activeProfile]);
 
   const nextMonth = () => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1));
   const prevMonth = () => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
@@ -173,11 +183,14 @@ const CalendarPage: React.FC = () => {
                                     ${isToday ? 'ring-2 ring-blue-600 ring-offset-2 scale-105' : ''}
                                 `}
                             >
-                                {format(day, 'd')}
+                                <span className={status.icon ? 'text-[10px] opacity-40 absolute top-1 left-1' : ''}>
+                                    {format(day, 'd')}
+                                </span>
+                                {status.icon && React.createElement(status.icon, { size: 20, className: "mt-1" })}
                                 {isToday && (
                                     <div className="absolute top-1 right-1 w-2 h-2 bg-blue-600 rounded-full border border-white" />
                                 )}
-                                {hasRecord && (
+                                {hasRecord && !status.icon && (
                                     <div className="absolute bottom-1.5 left-2 right-2 h-1 bg-white/30 rounded-full overflow-hidden">
                                         <motion.div 
                                             initial={false}

@@ -46,6 +46,13 @@ const Layout: React.FC = () => {
           <span className="text-[10px] font-black uppercase tracking-widest">Log</span>
         </NavLink>
         <NavLink 
+          to="/plan-builder" 
+          className={({ isActive }) => `flex flex-col items-center gap-1 transition-all duration-300 ${isActive ? 'text-blue-400 scale-110' : 'text-slate-500 hover:text-slate-300'}`}
+        >
+          <ClipboardList size={20} />
+          <span className="text-[10px] font-black uppercase tracking-widest">Plan</span>
+        </NavLink>
+        <NavLink 
           to="/stats" 
           className={({ isActive }) => `flex flex-col items-center gap-1 transition-all duration-300 ${isActive ? 'text-blue-400 scale-110' : 'text-slate-500 hover:text-slate-300'}`}
         >

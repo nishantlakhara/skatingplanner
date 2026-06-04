@@ -5,10 +5,10 @@ A production-ready React application called Parth Skating Planner. It is a mobil
 
 ## Deployment Target
 - **Platform:** GitHub Pages
-- **Target URL:** https://nishantlakhara.github.io/parth/skatingplanner/
+- **Target URL:** https://nishantlakhara.github.io/skatingplanner/
 - **Requirements:** Must work after browser refresh, support direct deep links, mobile devices, and PWA installation.
 - **Router:** HashRouter (NOT BrowserRouter)
-- **Vite Config:** `base: "/parth/skatingplanner/"`
+- **Vite Config:** `base: "/skatingplanner/"`
 - **Automation:** GitHub Actions workflow required for deployment on push to `main`.
 
 ## Technology Stack
@@ -42,6 +42,11 @@ This is a sports performance planner, not a task manager.
 9. **Motivation System:** Rotating motivational quotes.
 10. **Data Management:** Export/Import JSON for backups.
 11. **PWA:** Manifest, Service Worker, Offline support, Home screen icon.
+12. **Custom Planning & Templates:**
+    *   **Template System:** Create and manage reusable templates for daily routines and nutrition.
+    *   **Flexible Scheduling:** Assign templates to specific dates or date ranges (weeks, months).
+    *   **Special Day Types:** Support for 'Rest', 'Sick', and 'Travel' days with adjusted tracking and streak protection.
+    *   **Multi-Level Roadmap:** View and plan across daily, weekly, and monthly/yearly horizons.
 
 ## Code Quality
 - Use TypeScript, Functional Components, Custom Hooks.

@@ -12,7 +12,14 @@ export class StorageService {
         // If no profiles, check if legacy data exists to create "Parth"
         const legacyData = localStorage.getItem(LEGACY_DATA_KEY);
         if (legacyData) {
-            const parth: SkaterProfile = { id: 'parth-legacy', name: 'Parth', createdAt: new Date().toISOString() };
+            const parth: SkaterProfile = { 
+                id: 'parth-legacy', 
+                name: 'Parth', 
+                createdAt: new Date().toISOString(),
+                templates: [],
+                schedule: {},
+                library: { routines: [], mealPlans: [], drillSets: [] }
+            };
             this.saveProfiles([parth]);
             // Migrate legacy data to new key
             localStorage.setItem(`skate-data-parth-legacy`, legacyData);
@@ -20,7 +27,14 @@ export class StorageService {
         }
         return [];
     }
-    return JSON.parse(data);
+    const profiles: SkaterProfile[] = JSON.parse(data);
+    // Ensure new fields exist for backward compatibility
+    return profiles.map(p => ({
+        ...p,
+        templates: p.templates || [],
+        schedule: p.schedule || {},
+        library: p.library || { routines: [], mealPlans: [], drillSets: [] }
+    }));
   }
 
   static saveProfiles(profiles: SkaterProfile[]): void {
@@ -40,7 +54,19 @@ export class StorageService {
     const data = localStorage.getItem(`skate-data-${profileId}`);
     if (!data) return {};
     try {
-      return JSON.parse(data);
+      const records: Record<string, DailyRecord> = JSON.parse(data);
+      // Ensure all records have a 'type' and 'drills' for backward compatibility
+      Object.keys(records).forEach(date => {
+        if (records[date]) {
+          if (!records[date].type) {
+            records[date].type = 'training';
+          }
+          if (!records[date].drills) {
+            records[date].drills = [];
+          }
+        }
+      });
+      return records;
     } catch (e) {
       return {};
     }

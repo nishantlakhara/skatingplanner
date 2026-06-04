@@ -6,6 +6,7 @@ import CalendarPage from './pages/Calendar';
 import DailyPlanner from './pages/DailyPlanner';
 import Stats from './pages/Stats';
 import Profiles from './pages/Profiles';
+import PlanBuilder from './pages/PlanBuilder';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
             <Route path="day/:date" element={<DailyPlanner />} />
             <Route path="stats" element={<Stats />} />
             <Route path="profiles" element={<Profiles />} />
+            <Route path="plan-builder" element={<PlanBuilder />} />
           </Route>
         </Routes>
       </HashRouter>
