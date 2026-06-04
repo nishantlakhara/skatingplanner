@@ -8,7 +8,7 @@ import {
     Plus, Trash2, Calendar as CalendarIcon, 
     ClipboardList, ChevronRight, Settings2, 
     X, Clock, Salad, Dumbbell, Library, 
-    Download, Layout
+    Download, Layout, Coffee, Stethoscope, Plane
 } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { format, startOfDay } from 'date-fns';
@@ -764,10 +764,5 @@ const PlanBuilder: React.FC = () => {
         </div>
     );
 };
-
-// Add missing components to Record config
-const Stethoscope = (props: any) => <ClipboardList {...props} />;
-const Plane = (props: any) => <Download {...props} />;
-const Coffee = (props: any) => <Clock {...props} />;
 
 export default PlanBuilder;

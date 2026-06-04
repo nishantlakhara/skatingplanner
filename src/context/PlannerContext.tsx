@@ -115,7 +115,8 @@ export const PlannerProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const storedProfiles = StorageService.getProfiles().map(p => ({
             ...p,
             templates: p.templates || [],
-            schedule: p.schedule || {}
+            schedule: p.schedule || {},
+            library: p.library || { routines: [], mealPlans: [], drillSets: [] }
         }));
         setProfiles(storedProfiles);
         
@@ -139,7 +140,8 @@ export const PlannerProvider: React.FC<{ children: React.ReactNode }> = ({ child
         name,
         createdAt: new Date().toISOString(),
         templates: [],
-        schedule: {}
+        schedule: {},
+        library: { routines: [], mealPlans: [], drillSets: [] }
     };
     setProfiles(prev => {
         const updated = [...(prev || []), newProfile];
