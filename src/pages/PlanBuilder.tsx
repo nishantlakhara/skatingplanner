@@ -1,17 +1,15 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { usePlanner } from '../context/PlannerContext';
-import { DailyTemplate, DayType, RoutineSnippet, MealPlanSnippet, DrillSetSnippet } from '../types';
+import { DailyTemplate, DayType, SkaterProfile } from '../types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
     Plus, Trash2, Calendar as CalendarIcon, 
     ClipboardList, ChevronRight, Settings2, 
-    Save, X, Clock, Salad, Droplets, HeartPulse,
-    Stethoscope, Plane, Coffee, Dumbbell, Library, 
+    X, Clock, Salad, Dumbbell, Library, 
     Download, Layout
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar } from '@/components/ui/calendar';
 import { format, startOfDay } from 'date-fns';
 import { 
@@ -598,7 +596,7 @@ const PlanBuilder: React.FC = () => {
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Snippet Name</label>
                                 <Input 
                                     value={editingSnippet?.name || ''} 
-                                    onChange={e => setEditingSnippet(s => s ? ({ ...s, name: e.target.value }) : null)}
+                                    onChange={e => setEditingSnippet((s: any) => s ? ({ ...s, name: e.target.value }) : null)}
                                     className="h-12 rounded-2xl border-slate-100 font-bold bg-slate-50"
                                     placeholder="e.g., Morning Mobility, Pre-Race Meal"
                                 />
@@ -609,7 +607,7 @@ const PlanBuilder: React.FC = () => {
                                     <div className="flex items-center justify-between">
                                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tasks</label>
                                         <Button variant="ghost" size="sm" className="h-6 text-[10px] font-black text-blue-600 bg-blue-50 rounded-lg" onClick={() => {
-                                            setEditingSnippet(s => s ? ({ ...s, tasks: [...(s.tasks || []), { label: '', category: 'morning' }] }) : null)
+                                            setEditingSnippet((s: any) => s ? ({ ...s, tasks: [...(s.tasks || []), { label: '', category: 'morning' }] }) : null)
                                         }}>
                                             <Plus size={10} className="mr-1" /> Add Task
                                         </Button>
@@ -622,14 +620,14 @@ const PlanBuilder: React.FC = () => {
                                                     onChange={e => {
                                                         const newTasks = [...(editingSnippet.tasks || [])];
                                                         newTasks[idx].label = e.target.value;
-                                                        setEditingSnippet(s => s ? ({ ...s, tasks: newTasks }) : null);
+                                                        setEditingSnippet((s: any) => s ? ({ ...s, tasks: newTasks }) : null);
                                                     }}
                                                     placeholder="Task name..."
                                                     className="h-10 rounded-xl border-slate-100 font-bold bg-slate-50 flex-1"
                                                 />
                                                 <Button variant="ghost" size="icon" className="h-10 w-10 text-slate-300 hover:text-red-500" onClick={() => {
                                                     const newTasks = editingSnippet.tasks.filter((_: any, i: number) => i !== idx);
-                                                    setEditingSnippet(s => s ? ({ ...s, tasks: newTasks }) : null);
+                                                    setEditingSnippet((s: any) => s ? ({ ...s, tasks: newTasks }) : null);
                                                 }}>
                                                     <X size={16} />
                                                 </Button>
@@ -644,7 +642,7 @@ const PlanBuilder: React.FC = () => {
                                     <div className="flex items-center justify-between">
                                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Meals</label>
                                         <Button variant="ghost" size="sm" className="h-6 text-[10px] font-black text-blue-600 bg-blue-50 rounded-lg" onClick={() => {
-                                            setEditingSnippet(s => s ? ({ ...s, nutrition: [...(s.nutrition || []), { label: '', category: 'breakfast' }] }) : null)
+                                            setEditingSnippet((s: any) => s ? ({ ...s, nutrition: [...(s.nutrition || []), { label: '', category: 'breakfast' }] }) : null)
                                         }}>
                                             <Plus size={10} className="mr-1" /> Add Meal
                                         </Button>
@@ -657,14 +655,14 @@ const PlanBuilder: React.FC = () => {
                                                     onChange={e => {
                                                         const newItems = [...(editingSnippet.nutrition || [])];
                                                         newItems[idx].label = e.target.value;
-                                                        setEditingSnippet(s => s ? ({ ...s, nutrition: newItems }) : null);
+                                                        setEditingSnippet((s: any) => s ? ({ ...s, nutrition: newItems }) : null);
                                                     }}
                                                     placeholder="Food item..."
                                                     className="h-10 rounded-xl border-slate-100 font-bold bg-slate-50 flex-1"
                                                 />
                                                 <Button variant="ghost" size="icon" className="h-10 w-10 text-slate-300 hover:text-red-500" onClick={() => {
                                                     const newItems = editingSnippet.nutrition.filter((_: any, i: number) => i !== idx);
-                                                    setEditingSnippet(s => s ? ({ ...s, nutrition: newItems }) : null);
+                                                    setEditingSnippet((s: any) => s ? ({ ...s, nutrition: newItems }) : null);
                                                 }}>
                                                     <X size={16} />
                                                 </Button>
@@ -679,7 +677,7 @@ const PlanBuilder: React.FC = () => {
                                     <div className="flex items-center justify-between">
                                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Drills</label>
                                         <Button variant="ghost" size="sm" className="h-6 text-[10px] font-black text-blue-600 bg-blue-50 rounded-lg" onClick={() => {
-                                            setEditingSnippet(s => s ? ({ ...s, drills: [...(s.drills || []), ''] }) : null)
+                                            setEditingSnippet((s: any) => s ? ({ ...s, drills: [...(s.drills || []), ''] }) : null)
                                         }}>
                                             <Plus size={10} className="mr-1" /> Add Drill
                                         </Button>
@@ -692,14 +690,14 @@ const PlanBuilder: React.FC = () => {
                                                     onChange={e => {
                                                         const newDrills = [...(editingSnippet.drills || [])];
                                                         newDrills[idx] = e.target.value;
-                                                        setEditingSnippet(s => s ? ({ ...s, drills: newDrills }) : null);
+                                                        setEditingSnippet((s: any) => s ? ({ ...s, drills: newDrills }) : null);
                                                     }}
                                                     placeholder="Drill name..."
                                                     className="h-10 rounded-xl border-slate-100 font-bold bg-slate-50 flex-1"
                                                 />
                                                 <Button variant="ghost" size="icon" className="h-10 w-10 text-slate-300 hover:text-red-500" onClick={() => {
                                                     const newDrills = editingSnippet.drills.filter((_: any, i: number) => i !== idx);
-                                                    setEditingSnippet(s => s ? ({ ...s, drills: newDrills }) : null);
+                                                    setEditingSnippet((s: any) => s ? ({ ...s, drills: newDrills }) : null);
                                                 }}>
                                                     <X size={16} />
                                                 </Button>
@@ -766,5 +764,10 @@ const PlanBuilder: React.FC = () => {
         </div>
     );
 };
+
+// Add missing components to Record config
+const Stethoscope = (props: any) => <ClipboardList {...props} />;
+const Plane = (props: any) => <Download {...props} />;
+const Coffee = (props: any) => <Clock {...props} />;
 
 export default PlanBuilder;

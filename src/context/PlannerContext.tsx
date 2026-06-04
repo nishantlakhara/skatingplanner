@@ -155,10 +155,11 @@ export const PlannerProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const profile = profiles.find(p => p.id === id);
     if (profile) {
         setRecords({});
-        const safeProfile = {
+        const safeProfile: SkaterProfile = {
             ...profile,
             templates: profile.templates || [],
-            schedule: profile.schedule || {}
+            schedule: profile.schedule || {},
+            library: profile.library || { routines: [], mealPlans: [], drillSets: [] }
         };
         setActiveProfile(safeProfile);
         StorageService.setActiveProfileId(id);
